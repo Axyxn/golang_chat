@@ -11,7 +11,7 @@ export class SocketService {
 
   // We only call this AFTER you type your name
   public connect(username: string, token: string) {
-    this.socket = new WebSocket(`ws://localhost:12345/ws?token=${token}`);
+    this.socket = new WebSocket(`https://go-chat-backend-w1tb.onrender.com=${token}`);
 
     this.socket.onmessage = (event) => {
       this.listener.emit({ type: 'message', data: JSON.parse(event.data) });
