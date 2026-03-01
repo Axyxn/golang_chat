@@ -1,6 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, NgZone, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import {
+  Component,
+  NgZone,
+  ViewChild,
+  ElementRef,
+  OnDestroy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SocketService } from './socket.service';
 import { environment } from '../environments/environment';
@@ -31,6 +38,7 @@ export class AppComponent implements OnDestroy {
   constructor(
     private socket: SocketService,
     private zone: NgZone,
+    private cdr: ChangeDetectorRef,
   ) {
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey);
   }
@@ -105,6 +113,9 @@ export class AppComponent implements OnDestroy {
             // Only add if it's from another user (since we push our own instantly)
             if (event.data.sender !== this.username) {
               this.messages.push(event.data);
+
+              this.cdr.detectChanges(); // Trigger change detection manually
+
               setTimeout(() => this.scrollToBottom(), 50);
             }
           }

@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -154,7 +153,7 @@ func (c *Client) read() {
 			break
 		}
 		
-		incomingMsg.Timestamp = time.Now().Format("15:04")
+		//incomingMsg.Timestamp = time.Now().Format("15:04")//
 		jsonMessage, _ := json.Marshal(&incomingMsg)
 		
 		// 4. BROADCAST INSTANTLY: No longer waits for the database
