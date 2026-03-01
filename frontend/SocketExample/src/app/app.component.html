@@ -90,3 +90,16 @@
     </div>
   </div>
 </div>
+
+<div #chatScroll class="chat-container">
+  <div *ngFor="let msg of messages" class="message-item">
+    <b>{{ msg.sender }}:</b> {{ msg.content }}
+  </div>
+</div>
+<div class="input-container">
+  <input
+    type="text"
+    [(ngModel)]="chatBox"
+    (keyup.enter)="send()"
+    placeholder="Type your message here..."
+  />

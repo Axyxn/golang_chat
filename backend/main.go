@@ -147,9 +147,17 @@ func (c *Client) write() {
 }
 
 func main() {
-	initSupabaseAndDB()
-	go manager.start()
-	http.HandleFunc("/ws", wsPage)
-	log.Println("Server started on :12345")
-	http.ListenAndServe(":12345", nil)
+    initSupabaseAndDB()
+    go manager.start()
+    http.HandleFunc("/ws", wsPage)
+    
+    // Render provides a PORT environment variable
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "12345" // fallback for local
+    }
+    
+    log.Println("Server started on :" + port)
+    // Use the dynamic port
+    log.Fatal(http.ListenAndServe(":"+port, nil))
 }
