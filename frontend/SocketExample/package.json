@@ -2,6 +2,7 @@
   "name": "socket-example",
   "version": "0.0.0",
   "scripts": {
+    "build": "chmod +x set-env.sh && ./set-env.sh && ng build",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
