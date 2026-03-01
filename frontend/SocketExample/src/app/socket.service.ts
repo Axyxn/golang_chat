@@ -1,17 +1,21 @@
-// frontend/SocketExample/src/app/services/socket.service.ts
 import { Injectable, EventEmitter } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SocketService {
-  private socket!: WebSocket;
+  private socket: WebSocket | null = null; // Changed to allow null
   private listener: EventEmitter<any> = new EventEmitter();
 
   public constructor() {}
 
   public connect(username: string, token: string) {
-    // UPDATED: Using the secure WSS protocol and your specific Render backend URL
+    // 1. FIX: Close existing connection before starting a new one
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+
     const backendUrl = `wss://go-chat-backend-w1tb.onrender.com/ws?token=${token}`;
     console.log('Connecting to:', backendUrl);
 
@@ -22,24 +26,30 @@ export class SocketService {
     };
 
     this.socket.onmessage = (event) => {
-      // UPDATED: Logs raw data to confirm the Go server is sending JSON
-      console.log('Raw message from server:', event.data);
-      this.listener.emit({ type: 'message', data: JSON.parse(event.data) });
+      // 2. Wrap in try-catch to prevent service crash on bad JSON
+      try {
+        const parsedData = JSON.parse(event.data);
+        this.listener.emit({ type: 'message', data: parsedData });
+      } catch (e) {
+        console.error('Error parsing message:', e);
+      }
     };
 
     this.socket.onerror = (error) => {
-      // UPDATED: Critical for catching CORS or URL typos
       console.error('❌ WebSocket Connection Error:', error);
     };
 
-    this.socket.onclose = () => {
-      console.log('⚠️ WebSocket Connection Closed.');
+    this.socket.onclose = (event) => {
+      console.log('⚠️ WebSocket Connection Closed:', event.reason);
     };
   }
 
   public send(data: string) {
+    // 3. Ensure socket is actually ready before sending
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
+    } else {
+      console.warn('Cannot send: WebSocket is not open.');
     }
   }
 
