@@ -1,3 +1,5 @@
+import { CommonModule } from '@angular/common'; // Fixes *ngIf and *ngFor
+import { FormsModule } from '@angular/forms'; // Fixes [(ngModel)]
 import { Component, NgZone } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SocketService } from './socket.service';
@@ -8,9 +10,7 @@ import { environment } from '../environments/environment';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
-  imports: [
-    /* ... CommonModule, FormsModule ... */
-  ],
+  imports: [CommonModule, FormsModule],
 })
 export class AppComponent {
   private supabase: SupabaseClient;
@@ -64,6 +64,13 @@ export class AppComponent {
           }
         });
       });
+    }
+  }
+
+  public joinServer() {
+    // If you are using the simple username login from an older HTML version:
+    if (this.username.trim()) {
+      this.hasJoined = true;
     }
   }
 
