@@ -48,14 +48,24 @@ export class AppComponent {
 
   async handleAuth() {
     const mode = this.isSignUp ? 'signup' : 'login';
+    let authResult;
 
-    const { data, error } =
-      mode === 'signup'
-        ? await this.supabase.auth.signUp({ email: this.email, password: this.password })
-        : await this.supabase.auth.signInWithPassword({
-            email: this.email,
-            password: this.password,
-          });
+    if (mode === 'signup') {
+      authResult = await this.supabase.auth.signUp({
+        email: this.email,
+        password: this.password,
+        options: {
+          data: { username: this.usernameInput },
+        },
+      });
+    } else {
+      authResult = await this.supabase.auth.signInWithPassword({
+        email: this.email,
+        password: this.password,
+      });
+    }
+
+    const { data, error } = authResult;
 
     if (error) {
       alert(error.message);
@@ -65,21 +75,27 @@ export class AppComponent {
     if (data && data.session && data.user) {
       this.hasJoined = true;
 
-      // Use their chosen username, or default to the first part of their email
-      if (this.isSignUp && this.usernameInput.trim()) {
-        this.username = this.usernameInput;
-      } else {
-        this.username = data.user.email!.split('@')[0];
-      }
+      // UPDATED: Using bracket notation to satisfy TypeScript strict mode
+      this.username = data.user.user_metadata?.['username'] || data.user.email!.split('@')[0];
 
       console.log('Auth success! Connecting to Go backend...');
       this.socket.connect(this.username, data.session.access_token);
 
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.messages.push({
+        sender: '',
+        content: `${this.username} has joined the server.`,
+        timestamp: timeNow,
+      });
+      setTimeout(() => this.scrollToBottom(), 50);
+
       this.socket.getEventListener().subscribe((event) => {
         this.zone.run(() => {
           if (event.type === 'message') {
-            this.messages.push(event.data);
-            setTimeout(() => this.scrollToBottom(), 50);
+            if (event.data.sender !== this.username) {
+              this.messages.push(event.data);
+              setTimeout(() => this.scrollToBottom(), 50);
+            }
           }
         });
       });
@@ -88,16 +104,21 @@ export class AppComponent {
 
   public send() {
     if (this.chatBox.trim()) {
+      // Generate a clean time string like "10:45 AM"
+      const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // This now PERFECTLY matches your Go struct!
       const payload = {
         sender: this.username,
         content: this.chatBox,
+        timestamp: currentTime,
       };
 
       // Instantly show the message on YOUR screen (Zero Delay)
       this.messages.push(payload);
       setTimeout(() => this.scrollToBottom(), 50);
 
-      // Send to Go backend to broadcast to everyone else
+      // Send the complete payload to Go to broadcast to everyone else
       this.socket.send(JSON.stringify(payload));
       this.chatBox = '';
     }
