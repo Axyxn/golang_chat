@@ -1,18 +1,32 @@
 <div class="join-container" *ngIf="!hasJoined">
   <div class="join-box">
-    <h2>Welcome Back</h2>
-    <p>We're so excited to see you again!</p>
+    <h2>GoChat Server</h2>
+    <p>Welcome! Please login or create an account to start chatting.</p>
+
     <div class="input-group">
-      <label>DISPLAY NAME <span class="required">*</span></label>
+      <label>EMAIL <span class="required">*</span></label>
       <input
-        type="text"
-        [(ngModel)]="username"
-        (keyup.enter)="joinServer()"
-        placeholder="How should we call you?"
-        autofocus
+        type="email"
+        [(ngModel)]="email"
+        placeholder="email@example.com"
+        (keyup.enter)="handleAuth('login')"
       />
     </div>
-    <button (click)="joinServer()">Join Server</button>
+
+    <div class="input-group">
+      <label>PASSWORD <span class="required">*</span></label>
+      <input
+        type="password"
+        [(ngModel)]="password"
+        placeholder="Min 6 characters"
+        (keyup.enter)="handleAuth('login')"
+      />
+    </div>
+
+    <div class="button-group">
+      <button (click)="handleAuth('login')">Login</button>
+      <button class="secondary" (click)="handleAuth('signup')">Sign Up</button>
+    </div>
   </div>
 </div>
 
@@ -34,7 +48,7 @@
   <div class="chat-area">
     <div class="chat-header"><span class="hash">#</span> general</div>
 
-    <div class="message-container">
+    <div #chatScroll class="message-container">
       <div
         *ngFor="let msg of messages"
         class="message-wrapper"
@@ -72,34 +86,3 @@
     </div>
   </div>
 </div>
-
-<div class="join-container" *ngIf="!hasJoined">
-  <div class="join-box">
-    <h2>GoChat Server</h2>
-    <div class="input-group">
-      <label>EMAIL</label>
-      <input type="email" [(ngModel)]="email" placeholder="email@example.com" />
-    </div>
-    <div class="input-group">
-      <label>PASSWORD</label>
-      <input type="password" [(ngModel)]="password" placeholder="Min 6 characters" />
-    </div>
-    <div class="button-group">
-      <button (click)="handleAuth('login')">Login</button>
-      <button class="secondary" (click)="handleAuth('signup')">Sign Up</button>
-    </div>
-  </div>
-</div>
-
-<div #chatScroll class="chat-container">
-  <div *ngFor="let msg of messages" class="message-item">
-    <b>{{ msg.sender }}:</b> {{ msg.content }}
-  </div>
-</div>
-<div class="input-container">
-  <input
-    type="text"
-    [(ngModel)]="chatBox"
-    (keyup.enter)="send()"
-    placeholder="Type your message here..."
-  />
