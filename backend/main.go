@@ -14,7 +14,6 @@ import (
 	"github.com/supabase-community/supabase-go"
 )
 
-// Define structures
 type Client struct {
 	id       string
 	username string
@@ -35,7 +34,6 @@ type Message struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// FIX: Declare the global manager variable
 var manager = ClientManager{
 	broadcast:  make(chan []byte),
 	register:   make(chan *Client),
@@ -53,7 +51,6 @@ var (
 
 func initSupabaseAndDB() {
 	var err error
-	// PASTE YOUR KEYS HERE
 	supabaseUrl := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_KEY")
 	dbUrl       := os.Getenv("DATABASE_URL")
@@ -62,9 +59,24 @@ func initSupabaseAndDB() {
 
 	db, err = sql.Open("postgres", dbUrl)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("DB Open Error:", err)
 	}
-	db.Exec(`CREATE TABLE IF NOT EXISTS messages (id SERIAL, sender TEXT, content TEXT, timestamp TEXT)`)
+
+	// 1. NON-BLOCKING DB INIT: Prevents server hang on startup
+	go func() {
+		log.Println("Pinging database...")
+		err = db.Ping()
+		if err != nil {
+			log.Println("❌ DB Ping Error (Check DATABASE_URL and IPv4 settings):", err)
+			return
+		}
+		_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (id SERIAL, sender TEXT, content TEXT, timestamp TEXT)`)
+		if err != nil {
+			log.Println("❌ DB Create Table Error:", err)
+		} else {
+			log.Println("✅ Database connected and table verified!")
+		}
+	}()
 }
 
 func (manager *ClientManager) start() {
@@ -93,28 +105,40 @@ func (manager *ClientManager) start() {
 func wsPage(res http.ResponseWriter, req *http.Request) {
 	token := req.URL.Query().Get("token")
 	
-	// FIX: Use context and correct Auth method for new Supabase-go version
 	user, err := supabaseClient.Auth.WithToken(token).GetUser()
 	if err != nil {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	conn, _ := upgrader.Upgrade(res, req, nil)
-	client := &Client{id: uuid.New().String(), username: user.Email, socket: conn, send: make(chan []byte, 256)}
-
-	manager.register <- client
-
-	rows, _ := db.Query("SELECT sender, content, timestamp FROM messages ORDER BY id DESC LIMIT 50")
-	for rows.Next() {
-		var m Message
-		rows.Scan(&m.Sender, &m.Content, &m.Timestamp)
-		jsonM, _ := json.Marshal(m)
-		client.send <- jsonM
+	conn, err := upgrader.Upgrade(res, req, nil)
+	if err != nil {
+		log.Println("Upgrade error:", err)
+		return
 	}
 
+	client := &Client{id: uuid.New().String(), username: user.Email, socket: conn, send: make(chan []byte, 256)}
+	manager.register <- client
+
+	// 2. START REAL-TIME CHAT IMMEDIATELY: Unblocks the TCP buffer
 	go client.read()
 	go client.write()
+
+	// 3. LOAD HISTORY IN BACKGROUND: Won't break the chat if DB is hanging
+	go func() {
+		rows, err := db.Query("SELECT sender, content, timestamp FROM messages ORDER BY id DESC LIMIT 50")
+		if err != nil {
+			log.Println("❌ DB Query Error (History):", err)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var m Message
+			rows.Scan(&m.Sender, &m.Content, &m.Timestamp)
+			jsonM, _ := json.Marshal(m)
+			client.send <- jsonM
+		}
+	}()
 }
 
 func (c *Client) read() {
@@ -126,17 +150,27 @@ func (c *Client) read() {
 		var incomingMsg Message
 		err := c.socket.ReadJSON(&incomingMsg)
 		if err != nil {
+			log.Println("Socket Read Error:", err)
 			break
 		}
+		
 		incomingMsg.Timestamp = time.Now().Format("15:04")
-		db.Exec("INSERT INTO messages (sender, content, timestamp) VALUES ($1, $2, $3)", 
-			incomingMsg.Sender, incomingMsg.Content, incomingMsg.Timestamp)
 		jsonMessage, _ := json.Marshal(&incomingMsg)
+		
+		// 4. BROADCAST INSTANTLY: No longer waits for the database
 		manager.broadcast <- jsonMessage
+
+		// 5. SAVE TO DATABASE IN BACKGROUND
+		go func(msg Message) {
+			_, err := db.Exec("INSERT INTO messages (sender, content, timestamp) VALUES ($1, $2, $3)", 
+				msg.Sender, msg.Content, msg.Timestamp)
+			if err != nil {
+				log.Println("❌ DB Insert Error:", err)
+			}
+		}(incomingMsg)
 	}
 }
 
-// FIX: Added the missing write method
 func (c *Client) write() {
 	defer func() {
 		c.socket.Close()
@@ -147,17 +181,15 @@ func (c *Client) write() {
 }
 
 func main() {
-    initSupabaseAndDB()
-    go manager.start()
-    http.HandleFunc("/ws", wsPage)
-    
-    // Render provides a PORT environment variable
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "12345" // fallback for local
-    }
-    
-    log.Println("Server started on :" + port)
-    // Use the dynamic port
-    log.Fatal(http.ListenAndServe(":"+port, nil))
+	initSupabaseAndDB()
+	go manager.start()
+	http.HandleFunc("/ws", wsPage)
+	
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "12345"
+	}
+	
+	log.Println("Server started on :" + port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
