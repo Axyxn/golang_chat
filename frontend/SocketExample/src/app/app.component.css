@@ -350,3 +350,99 @@
 .input-container input::placeholder {
   color: #87898f;
 }
+
+/* Login Box Formatting */
+.join-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #313338; /* Discord dark background */
+}
+
+.join-box {
+  background-color: #2b2d31;
+  padding: 32px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  color: #f2f3f5;
+}
+
+.join-box h2 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+
+.join-box p {
+  text-align: center;
+  color: #b5bac1;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  display: block;
+  color: #b5bac1;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 3px;
+  border: none;
+  background-color: #1e1f22;
+  color: #dbdee1;
+  font-size: 16px;
+  box-sizing: border-box; /* Ensures padding doesn't break width */
+}
+
+.input-group input:focus {
+  outline: none;
+  background-color: #2b2d31;
+}
+
+.required {
+  color: #f23f42;
+}
+
+/* Button Formatting */
+.button-group button {
+  width: 100%;
+  padding: 12px;
+  background-color: #5865f2; /* Discord blurple */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 10px;
+}
+
+.button-group button:hover {
+  background-color: #4752c4;
+}
+
+.toggle-text {
+  color: #00a8fc;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.toggle-text:hover {
+  text-decoration: underline;
+}

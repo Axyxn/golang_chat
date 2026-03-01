@@ -16,35 +16,39 @@ export class AppComponent {
   private supabase: SupabaseClient;
   public email = '';
   public password = '';
+  public usernameInput = ''; // Added for custom username
   public username = '';
   public hasJoined = false;
+  public isSignUp = false; // Toggle for the UI form
   public messages: any[] = [];
   public chatBox = '';
 
-  // 1. Reference to the chat container for auto-scrolling
   @ViewChild('chatScroll') private chatScrollContainer!: ElementRef;
 
   constructor(
     private socket: SocketService,
     private zone: NgZone,
   ) {
-    // PASTE YOUR KEYS HERE
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey);
   }
 
-  // 2. Helper function to scroll to the bottom of the chat
   private scrollToBottom(): void {
     try {
       if (this.chatScrollContainer) {
         this.chatScrollContainer.nativeElement.scrollTop =
           this.chatScrollContainer.nativeElement.scrollHeight;
       }
-    } catch (err) {
-      console.error('Scroll error:', err);
-    }
+    } catch (err) {}
   }
 
-  async handleAuth(mode: 'login' | 'signup') {
+  // Toggle between Login and Sign Up screens
+  public toggleAuthMode() {
+    this.isSignUp = !this.isSignUp;
+  }
+
+  async handleAuth() {
+    const mode = this.isSignUp ? 'signup' : 'login';
+
     const { data, error } =
       mode === 'signup'
         ? await this.supabase.auth.signUp({ email: this.email, password: this.password })
@@ -60,30 +64,25 @@ export class AppComponent {
 
     if (data && data.session && data.user) {
       this.hasJoined = true;
-      this.username = data.user.email!; // Store the email for the UI
 
-      console.log('Auth success, connecting socket...');
+      // Use their chosen username, or default to the first part of their email
+      if (this.isSignUp && this.usernameInput.trim()) {
+        this.username = this.usernameInput;
+      } else {
+        this.username = data.user.email!.split('@')[0];
+      }
 
-      // Trigger the connection immediately after login
+      console.log('Auth success! Connecting to Go backend...');
       this.socket.connect(this.username, data.session.access_token);
 
       this.socket.getEventListener().subscribe((event) => {
         this.zone.run(() => {
           if (event.type === 'message') {
-            console.log('Pushing message to UI:', event.data);
             this.messages.push(event.data);
-
-            // 3. Auto-scroll to bottom when a new message arrives from the server
             setTimeout(() => this.scrollToBottom(), 50);
           }
         });
       });
-    }
-  }
-
-  public joinServer() {
-    if (this.username.trim()) {
-      this.hasJoined = true;
     }
   }
 
@@ -93,12 +92,14 @@ export class AppComponent {
         sender: this.username,
         content: this.chatBox,
       };
-      // Send the stringified JSON payload to the Go backend
+
+      // Instantly show the message on YOUR screen (Zero Delay)
+      this.messages.push(payload);
+      setTimeout(() => this.scrollToBottom(), 50);
+
+      // Send to Go backend to broadcast to everyone else
       this.socket.send(JSON.stringify(payload));
       this.chatBox = '';
-
-      // 4. Auto-scroll to bottom instantly when YOU send a message
-      setTimeout(() => this.scrollToBottom(), 50);
     }
   }
 }
