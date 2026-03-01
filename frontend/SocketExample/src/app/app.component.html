@@ -1,0 +1,92 @@
+<div class="join-container" *ngIf="!hasJoined">
+  <div class="join-box">
+    <h2>Welcome Back</h2>
+    <p>We're so excited to see you again!</p>
+    <div class="input-group">
+      <label>DISPLAY NAME <span class="required">*</span></label>
+      <input
+        type="text"
+        [(ngModel)]="username"
+        (keyup.enter)="joinServer()"
+        placeholder="How should we call you?"
+        autofocus
+      />
+    </div>
+    <button (click)="joinServer()">Join Server</button>
+  </div>
+</div>
+
+<div class="discord-layout" *ngIf="hasJoined">
+  <div class="sidebar">
+    <div class="server-header">GoChat Server</div>
+    <div class="channel-list">
+      <div class="channel active"><span class="hash">#</span> general</div>
+    </div>
+    <div class="user-panel">
+      <div class="avatar">{{ username.charAt(0).toUpperCase() }}</div>
+      <div class="user-info">
+        <div class="name">{{ username }}</div>
+        <div class="status">Online</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-area">
+    <div class="chat-header"><span class="hash">#</span> general</div>
+
+    <div class="message-container">
+      <div
+        *ngFor="let msg of messages"
+        class="message-wrapper"
+        [class.system-wrapper]="!msg.sender"
+      >
+        <ng-container *ngIf="!msg.sender; else userMessage">
+          <div class="system-divider">
+            <span>{{ msg.content }}</span>
+          </div>
+        </ng-container>
+
+        <ng-template #userMessage>
+          <div class="avatar">{{ msg.sender.charAt(0).toUpperCase() }}</div>
+          <div class="message-content">
+            <div class="message-meta">
+              <span class="sender-name">{{ msg.sender }}</span>
+              <span class="timestamp">{{ msg.timestamp }}</span>
+            </div>
+            <div class="text">{{ msg.content }}</div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="input-wrapper">
+      <div class="input-inner">
+        <input
+          type="text"
+          [(ngModel)]="chatBox"
+          (keyup.enter)="send()"
+          placeholder="Message #general"
+          autofocus
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="join-container" *ngIf="!hasJoined">
+  <div class="join-box">
+    <h2>GoChat Server</h2>
+    <div class="input-group">
+      <label>EMAIL</label>
+      <input type="email" [(ngModel)]="email" placeholder="email@example.com" />
+    </div>
+    <div class="input-group">
+      <label>PASSWORD</label>
+      <input type="password" [(ngModel)]="password" placeholder="Min 6 characters" />
+    </div>
+    <div class="button-group">
+      <button (click)="handleAuth('login')">Login</button>
+      <button class="secondary" (click)="handleAuth('signup')">Sign Up</button>
+    </div>
+  </div>
+</div>
