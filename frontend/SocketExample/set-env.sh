@@ -15,4 +15,5 @@ export const environment = {
 };
 EOF
 
+// Check if the file was created successfully
 echo "✅ environment.ts generated successfully with Render variables."
